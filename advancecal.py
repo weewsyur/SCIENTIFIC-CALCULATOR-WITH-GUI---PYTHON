@@ -1,5 +1,6 @@
 from tkinter import *
 import math
+from asteval import Interpreter
 
 #FUNCTIONS AND OPERATIONS
 
@@ -18,28 +19,6 @@ def button_delete():
     text = calc_operator[:-1]
     calc_operator = text
     text_input.set(text)
-
-def factorial(n):
-    if n < 0:
-        return "error"
-    if n == 0 or n == 1:
-        return 1
-    else:
-        return n * factorial(n-1)
-    
-def fact_func():
-    global calc_operator
-    try:
-        result = factorial(int(calc_operator))
-        if result == "error":
-            calc_operator = ""
-            text_input.set("error")
-        else:
-            calc_operator = str(result)
-            text_input.set(calc_operator)
-    except:
-        calc_operator = ""
-        text_input.set("error")
 
 def floor_func():
     global calc_operator
@@ -102,24 +81,62 @@ def sign_change():
     calc_operator = temp
     text_input.set(temp)
 
+def summation(expression, *args, **kwargs):
+    aeval.symtable.update(kwargs)
+    if not args or len(args) % 3 != 0:
+        raise ValueError("summation requires groups of (variable, start, end)")
+    
+    var, start, end = args[0], args[1], args[2]
+    total = 0
+    for i in range(int(aeval.eval(str(start))), int(aeval.eval(str(end))) + 1):
+        inner_aeval = Interpreter(symtable=aeval.symtable)
+        inner_aeval.symtable[var] = i
+        if len(args) > 3:
+            total += inner_aeval.eval(f"summation('{expression}', *{list(args[3:])})")
+        else:
+            total += inner_aeval.eval(expression)
+    return total
+
+def prod(expression, *args, **kwargs):
+    aeval.symtable.update(kwargs)
+    if not args or len(args) % 3 != 0:
+        raise ValueError("prod requires groups of (variable, start, end)")
+    var, start, end = args[0], args[1], args[2]
+    total = 1
+    for i in range(int(aeval.eval(str(start))), int(aeval.eval(str(end))) + 1):
+        inner_aeval = Interpreter(symtable=aeval.symtable)
+        inner_aeval.symtable[var] = i
+        if len(args) > 3:
+            total *= inner_aeval.eval(f"prod('{expression}', *{list(args[3:])})")
+        else:
+            total *= inner_aeval.eval(expression)
+    return total
+
 def button_equal():
     global calc_operator
     try:
-        # Replace custom operators with Python equivalents
-        expression = calc_operator.replace('log(', 'log10(')
-        temp_op = str(eval(expression))
+        # Use the safe evaluator
+        temp_op = str(aeval.eval(calc_operator))
         text_input.set(temp_op)
         calc_operator = temp_op
-    except:
-        text_input.set("error")
+    except Exception as e:
+        text_input.set("Error")
         calc_operator = ""
 
-#VARIABLES
-log10 = math.log10
-ln = math.log
-e = math.e
-pi = math.pi
 
+#VARIABLES
+aeval = Interpreter()
+aeval.symtable['summation'] = summation
+aeval.symtable['prod'] = prod
+aeval.symtable['sin'] = math.sin
+aeval.symtable['cos'] = math.cos
+aeval.symtable['tan'] = math.tan
+aeval.symtable['radians'] = math.radians
+aeval.symtable['factorial'] = math.factorial
+log, ln = math.log10, math.log
+args = ['a', 'b', 'c', 'd', 'x']
+e = math.exp
+p = math.pi
 
 
 #GUI SETUP
@@ -152,7 +169,7 @@ int_btn = Button(tk_calc, button_params, text='INT',
                      row=1, column=2, sticky="nsew")
 
 factorial_btn = Button(tk_calc, button_params, text='x!',
-                       command=fact_func).grid(
+                       command=lambda:button_click('factorial(')).grid(
                            row=1, column=3, sticky="nsew")
 
 power_btn = Button(tk_calc, button_params, text='x^y',
@@ -194,7 +211,7 @@ eulers_num = Button(tk_calc, button_params, text='e',
                         row=3, column=2, sticky="nsew")
 
 sum_btn = Button(tk_calc, button_params, text='∑',
-                   command=lambda:button_click('sum(')).grid(
+                   command=lambda:button_click('summation(')).grid(
                        row=3, column=3, sticky="nsew")
 
 prod_btn = Button(tk_calc, button_params, text='Π',
@@ -240,10 +257,7 @@ comma_btn = Button(tk_calc, button_params_main, text=',',
 signs = Button(tk_calc, button_params_main, text='±',
                command=sign_change).grid(
                    row=5, column=3, sticky="nsew")
-
-x_var = Button(tk_calc, button_params_main, text='x',
-           command=lambda:button_click('x')).grid(
-               row=5, column=4, sticky="nsew")
+equal_btn_single = Button(tk_calc, button_params_main, text='=', command=button_equal, bg="#2D502D").grid(row=5, column=4, sticky="nsew")
 
 #6TH ROW BUTTONS
 button_7 = Button(tk_calc, button_params_main, text='7',
@@ -322,4 +336,3 @@ equal = Button(tk_calc, button_params_main, text='=',
                       row=9, column=2, sticky="nsew", columnspan=3)
 
 tk_calc.mainloop()
-
