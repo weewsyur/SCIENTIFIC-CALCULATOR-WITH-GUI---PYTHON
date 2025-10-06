@@ -125,7 +125,7 @@ pi = math.pi
 #GUI SETUP
 tk_calc = Tk()
 tk_calc.configure(bg="#E75480", bd=10)
-tk_calc.title("GEN-Z Calculator - Coding Olympics 2023")
+tk_calc.title('SCIENTIFIC CALCULATOR')
 
 calc_operator = ""
 text_input = StringVar()
