@@ -322,3 +322,4 @@ equal = Button(tk_calc, button_params_main, text='=',
                       row=9, column=2, sticky="nsew", columnspan=3)
 
 tk_calc.mainloop()
+
