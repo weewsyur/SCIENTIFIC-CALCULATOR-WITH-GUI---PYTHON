@@ -82,41 +82,87 @@ def sign_change():
     text_input.set(temp)
 
 def summation(expression, *args, **kwargs):
-    aeval.symtable.update(kwargs)
     if not args or len(args) % 3 != 0:
         raise ValueError("summation requires groups of (variable, start, end)")
     
+    aeval.symtable.update(kwargs)
     var, start, end = args[0], args[1], args[2]
     total = 0
     for i in range(int(aeval.eval(str(start))), int(aeval.eval(str(end))) + 1):
-        inner_aeval = Interpreter(symtable=aeval.symtable)
+        inner_aeval = Interpreter(symtable=aeval.symtable.copy())
         inner_aeval.symtable[var] = i
         if len(args) > 3:
-            total += inner_aeval.eval(f"summation('{expression}', *{list(args[3:])})")
+            total += inner_aeval.eval(f"summation('{expression}', *{list(args[3:])}, **{kwargs})")
         else:
             total += inner_aeval.eval(expression)
     return total
 
 def prod(expression, *args, **kwargs):
-    aeval.symtable.update(kwargs)
     if not args or len(args) % 3 != 0:
         raise ValueError("prod requires groups of (variable, start, end)")
+    
+    aeval.symtable.update(kwargs)
     var, start, end = args[0], args[1], args[2]
     total = 1
     for i in range(int(aeval.eval(str(start))), int(aeval.eval(str(end))) + 1):
-        inner_aeval = Interpreter(symtable=aeval.symtable)
+        inner_aeval = Interpreter(symtable=aeval.symtable.copy())
         inner_aeval.symtable[var] = i
         if len(args) > 3:
-            total *= inner_aeval.eval(f"prod('{expression}', *{list(args[3:])})")
+            total *= inner_aeval.eval(f"prod('{expression}', *{list(args[3:])}, **{kwargs})")
         else:
             total *= inner_aeval.eval(expression)
     return total
 
+def pre_parse_expression(expr):
+    """
+    Translates custom ∑ and Π notation into standard function calls.
+    Example: '∑∑ x+y (a=1, b=3, c=2, d=4)' -> "summation('x+y','x',1,3,'y',2,4)"
+    """
+    expr = expr.strip()
+    if not ('∑' in expr or 'Π' in expr):
+        return expr
+
+    # Identify the function type (summation or prod)
+    func_name = 'summation' if '∑' in expr else 'prod'
+    op_char = '∑' if func_name == 'summation' else 'Π'
+
+    # Count the number of operators to determine nesting level
+    op_count = expr.count(op_char)
+    loop_vars = ['x', 'y', 'z'][:op_count]  # Supports up to 3 nested loops
+
+    # Extract the mathematical expression and the variable definitions
+    import re
+    match = re.search(r'([\w\s\+\-\*\/\^\.]+)\s*\((.*)\)', expr)
+    if not match:
+        raise ValueError("Invalid format. Use 'EXPR (a=1, b=2, ...)'")
+
+    math_expr_part = match.group(1).replace(op_char, '').strip()
+    # Ensure implicit multiplication is handled, e.g., 'xy' -> 'x*y'
+    if len(loop_vars) > 1 and all(v in math_expr_part for v in loop_vars):
+         if '*' not in math_expr_part and '/' not in math_expr_part:
+              math_expr_part = '*'.join(loop_vars)
+
+    vars_part = match.group(2)
+    
+    # Create a dictionary of the defined variables (a, b, c, d, ...)
+    var_map = dict(item.split('=') for item in vars_part.replace(' ', '').split(','))
+    
+    # Build the arguments for the function call
+    range_defs = [('a', 'b'), ('c', 'd'), ('e', 'f')]
+    args = [f"'{math_expr_part}'"]
+    for i in range(op_count):
+        var = loop_vars[i]
+        start_var, end_var = range_defs[i]
+        args.extend([f"'{var}'", var_map[start_var], var_map[end_var]])
+
+    return f"{func_name}({', '.join(args)})"
+
 def button_equal():
     global calc_operator
     try:
-        # Use the safe evaluator
-        temp_op = str(aeval.eval(calc_operator))
+        # Pre-parse for custom notation, then evaluate
+        parsed_expr = pre_parse_expression(calc_operator)
+        temp_op = str(aeval.eval(parsed_expr))
         text_input.set(temp_op)
         calc_operator = temp_op
     except Exception as e:
