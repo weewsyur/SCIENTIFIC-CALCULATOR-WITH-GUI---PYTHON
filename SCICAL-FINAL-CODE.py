@@ -186,7 +186,7 @@ aeval.symtable['tan'] = math.tan
 aeval.symtable['radians'] = math.radians
 aeval.symtable['factorial'] = math.factorial
 aeval.symtable['log'] = math.log10
-aeval.symtable['ln'] = math.log
+aeval.symtable['log2'] = math.log2
 args = ['a', 'b', 'c', 'd', 'x', 'y']
 e = math.exp
 p = math.pi
@@ -238,12 +238,12 @@ int_div = Button(tk_calc, button_params, text='//',
                  command=lambda:button_click('//')).grid(
                      row=2, column=1, sticky="nsew")
 
-log = Button(tk_calc, button_params, text='log',
+log_btn = Button(tk_calc, button_params, text='log',
                    command=lambda:button_click('log(')).grid(
                        row=2, column=2, sticky="nsew")
 
-ln_btn = Button(tk_calc, button_params, text='ln',
-                   command=lambda:button_click('ln(')).grid(
+log2_btn = Button(tk_calc, button_params, text='log2',
+                   command=lambda:button_click('log2(')).grid(
                        row=2, column=3, sticky="nsew")
 
 pi_num = Button(tk_calc, button_params, text='π',
